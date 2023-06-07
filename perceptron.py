@@ -2,15 +2,21 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
+import locale
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import LabelEncoder
+from sklearn.neural_network import MLPClassifier
 
+
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 dataset = pd.read_csv('ds_salaries.csv')
-THRESHOLD = 0.3
+
+THRESHOLD = 0.4
 
 salario = "salary_in_usd"
 COL_SALARIO = dataset[salario]
@@ -28,6 +34,7 @@ def transformar_econder(dataset):
             # tipo_depois_encoder =  dataset[coluna].dtypes
             print(f'\n Coluna {coluna}: valores antes  {valores_antes} e valores depois {valores_depois} \n tipo antes {tipo_antes_encoder} e tipo depois {dataset[coluna].dtypes}')
     return dataset
+    
 def colunas_faltantes(dataset):
     percentual_dfaltantes = dataset.isna().sum() / len(dataset) * 100
     # Selecionando as colunas com mais de 90% de dados faltantes
@@ -35,8 +42,10 @@ def colunas_faltantes(dataset):
     cols_dfaltantes = dataset[colunas_dfaltantes]
     print(f'\n Colunas com mais de 90% de dados faltantes: { colunas_dfaltantes }')
     return cols_dfaltantes
+    
 def preencher_mediana(dataset):
     return dataset.fillna(dataset.median())
+
 def correlacao_forte(dataset):
     result_correlacao = dataset.corrwith(COL_SALARIO, numeric_only=True)
     colunas_correlacionadas = result_correlacao[result_correlacao.abs() > THRESHOLD].index
@@ -57,53 +66,52 @@ def correlacao_forte(dataset):
 transformar_econder(dataset)
 colunas_faltantes(dataset)
 preencher_mediana(dataset)
-dataset_correlacionado = correlacao_forte(dataset)
 
-
-dataset = dataset.drop(columns=set(dataset.columns) - set(dataset_correlacionado))
+dataset = dataset.drop(columns=["job_title", "salary", "salary_currency"])
+correlacao_forte(dataset)
 
 print(f'dataset columns {dataset.columns}')
 
-# Divisão do dataset em features (X) e target (y)
 X = dataset.drop(columns=["salary_in_usd"])
 y = dataset["salary_in_usd"]
 
-# Divisão do dataset em treino e teste
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Pré-processamento dos dados com escalonamento
 scaler = MinMaxScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# Criação e treinamento do modelo MLPRegressor
-model = MLPRegressor(hidden_layer_sizes=(100, 100), activation='relu', random_state=42, max_iter=500)
+model = MLPClassifier(hidden_layer_sizes=(400, 400), activation='relu', random_state=42, max_iter=500)
 model.fit(X_train_scaled, y_train)
 
-# Predição do salário para os dados de teste
+
 y_pred = model.predict(X_test_scaled)
 
-# Cálculo da métrica de avaliação (mean absolute error)
+
 mae = mean_absolute_error(y_test, y_pred)
 print(f"Mean Absolute Error: {mae:.2f}")
 
-# Example Profiles
-example_profiles = X_test_scaled[:3]  # Selecting the first three data points from the test set
+example_profiles = X_test_scaled[:30] 
 
-# Predicted Salaries for Example Profiles
 predicted_salaries = model.predict(example_profiles)
 
-# Displaying Example Profiles and Predicted Salaries
 for i, example_profile in enumerate(example_profiles):
     print(f"\nExample Profile {i+1}:")
-    for j, coluna in enumerate(X.columns):
-        print(f"{coluna}: {example_profile[j]}")
-    print(f"Predicted Salary: {predicted_salaries[i]:.2f} USD")
+    # for j, coluna in enumerate(X.columns):
+    #     original_value = X_test.iloc[i][coluna]  
+    #     print(f"{coluna}: {original_value}")
+    print(f"Predicted Salary: {locale.currency(predicted_salaries[i], grouping=True)}")
 
-# Displaying Example Profiles and Predicted Salaries
-for i, example_profile in enumerate(example_profiles):
-    print(f"\nExample Profile {i+1}:")
-    for j, coluna in enumerate(X.columns):
-        original_value = X_test.iloc[i][coluna]  # Get the original value from the X_test dataframe
-        print(f"{coluna}: {original_value}")
-    print(f"Predicted Salary: {predicted_salaries[i]:.2f} USD")
+
+plt.scatter(range(len(y_test)), y_test, color='pink', label='Valores Reais')
+plt.scatter(range(len(predicted_salaries)), predicted_salaries, color='blue', label='Valores Previstos')
+
+plt.xlabel('Exemplo')
+plt.ylabel('Salário em USD')
+plt.title('Valores Reais vs. Valores Previstos')
+
+# Adicionar legenda
+plt.legend(loc='best')
+
+# Exibir o gráfico
+plt.show()
