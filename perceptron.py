@@ -80,7 +80,7 @@ scaler = MinMaxScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-model = MLPClassifier(hidden_layer_sizes=(400, 400), activation='relu', random_state=42, max_iter=500)
+model = MLPClassifier(hidden_layer_sizes=(500, 500), activation='relu', random_state=42, max_iter=500)
 model.fit(X_train_scaled, y_train)
 
 y_pred = model.predict(X_test_scaled)
@@ -88,10 +88,10 @@ y_pred = model.predict(X_test_scaled)
 mae = mean_absolute_error(y_test, y_pred)
 accuracy = model.score(X_test_scaled, y_test)  
 
-accuracy_percentage = accuracy * 100
+# accuracy_percentage = accuracy * 100
 
 print(f"Mean Absolute Error: {mae:.2f}")
-print(f"Accuracy: {accuracy_percentage:.2f}%")
+print(f"Accuracy: {accuracy:.2f}")
 
 
 def create_user_input():
